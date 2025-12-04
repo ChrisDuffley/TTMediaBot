@@ -47,7 +47,7 @@ def download() -> None:
     page = bs4.BeautifulSoup(r.text, features="html.parser")
     # The last tested version series is v5.15x
     versions = page.find_all("li")
-    version = [i for i in versions if "5.15" in i.text][-1].a.get("href")[0:-1]
+    version = [i for i in versions if "5.18" in i.text][-1].a.get("href")[0:-1]
     download_url = (
         url
         + "/"
