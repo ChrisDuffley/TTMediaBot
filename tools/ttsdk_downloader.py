@@ -2,6 +2,7 @@
 
 import bs4
 import patoolib
+import re
 import requests
 
 import os
@@ -53,14 +54,23 @@ def download() -> None:
     # Automatically detect the latest SDK version from the website
     versions = page.find_all("li")
 
-    # Extract all version links (v5.x format)
+    # Extract all version links (vX.Y format)
+    version_pattern = re.compile(r'^v(\d+)\.(\d+)([a-z]?)/$')
     version_candidates = []
     for item in versions:
         if item.a and item.a.get("href"):
             href = item.a.get("href")
-            # Look for version patterns like "v5.19", "v5.18", etc.
-            if href.startswith("v5.") and "/" in href:
-                version_candidates.append(href[0:-1])  # Remove trailing /
+            # Look for version patterns like "v5.19/", "v5.18a/", etc.
+            match = version_pattern.match(href)
+            if match:
+                # Store (major, minor, suffix, full_version) for sorting
+                major = int(match.group(1))
+                minor = int(match.group(2))
+                suffix = match.group(3) or ''
+                full_version = href[0:-1]  # Remove trailing /
+                version_candidates.append(
+                    (major, minor, suffix, full_version)
+                )
 
     if not version_candidates:
         sys.exit(
@@ -68,8 +78,10 @@ def download() -> None:
             "Please check the URL or try again later."
         )
 
-    # Use the latest version (last one in the list)
-    version = version_candidates[-1]
+    # Sort by major, minor, then suffix (alphabetically)
+    version_candidates.sort(key=lambda x: (x[0], x[1], x[2]))
+    # Get the latest version (last after sorting)
+    version = version_candidates[-1][3]
     print(f"Detected latest SDK version: {version}")
 
     download_url = (
