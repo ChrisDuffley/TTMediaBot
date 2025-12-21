@@ -68,9 +68,9 @@ def download() -> None:
                 minor = int(match.group(2))
                 suffix = match.group(3) or ''
                 full_version = href[0:-1]  # Remove trailing /
-                # For sorting: empty suffix (stable) should sort last
-                # Use a tuple where stable versions have ('', 1) and
-                # pre-release versions have (suffix, 0)
+                # For sorting: stable versions (no suffix) get is_stable=1,
+                # pre-releases get is_stable=0. When sorted ascending,
+                # stable versions come after pre-releases for same major.minor
                 is_stable = 1 if suffix == '' else 0
                 version_candidates.append(
                     (major, minor, is_stable, suffix, full_version)
@@ -82,7 +82,9 @@ def download() -> None:
             "Please check the URL or try again later."
         )
 
-    # Sort by major, minor, stability (stable last), then suffix
+    # Sort by: major (asc), minor (asc), stability (asc: 0=pre-release,
+    # 1=stable), suffix (asc). This ensures stable releases are picked
+    # over pre-releases for the same major.minor version.
     version_candidates.sort(key=lambda x: (x[0], x[1], x[2], x[3]))
     # Get the latest version (last after sorting)
     version = version_candidates[-1][4]
