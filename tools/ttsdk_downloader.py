@@ -18,7 +18,6 @@ import downloader
 url = "https://bearware.dk/teamtalksdk"
 
 
-
 def get_url_suffix_from_platform() -> str:
     machine = platform.machine()
     if sys.platform == "win32":
@@ -42,21 +41,50 @@ def get_url_suffix_from_platform() -> str:
 
 
 def download() -> None:
-    headers = {'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/58.0.3029.110 Safari/537.3'}
+    headers = {
+        'User-Agent': (
+            'Mozilla/5.0 (Windows NT 10.0; Win64; x64) '
+            'AppleWebKit/537.36 (KHTML, like Gecko) '
+            'Chrome/58.0.3029.110 Safari/537.3'
+        )
+    }
     r = requests.get(url, headers=headers)
     page = bs4.BeautifulSoup(r.text, features="html.parser")
-    # The last tested version series is v5.15x
+    # Automatically detect the latest SDK version from the website
     versions = page.find_all("li")
-    version = [i for i in versions if "5.18" in i.text][-1].a.get("href")[0:-1]
+
+    # Extract all version links (v5.x format)
+    version_candidates = []
+    for item in versions:
+        if item.a and item.a.get("href"):
+            href = item.a.get("href")
+            # Look for version patterns like "v5.19", "v5.18", etc.
+            if href.startswith("v5.") and "/" in href:
+                version_candidates.append(href[0:-1])  # Remove trailing /
+
+    if not version_candidates:
+        sys.exit(
+            "No TeamTalk SDK versions found on the download page. "
+            "Please check the URL or try again later."
+        )
+
+    # Use the latest version (last one in the list)
+    version = version_candidates[-1]
+    print(f"Detected latest SDK version: {version}")
+
     download_url = (
         url
         + "/"
         + version
         + "/"
-        + "tt5sdk_{v}_{p}.7z".format(v=version, p=get_url_suffix_from_platform())
+        + "tt5sdk_{v}_{p}.7z".format(
+            v=version, p=get_url_suffix_from_platform()
+        )
     )
     print("Downloading from " + download_url)
-    downloader.download_file(download_url, os.path.join(os.getcwd(), "ttsdk.7z"))
+    downloader.download_file(
+        download_url, os.path.join(os.getcwd(), "ttsdk.7z")
+    )
 
 
 def extract() -> None:
@@ -66,31 +94,44 @@ def extract() -> None:
         shutil.rmtree(os.path.join(os.getcwd(), "ttsdk"))
         os.mkdir(os.path.join(os.getcwd(), "ttsdk"))
     patoolib.extract_archive(
-        os.path.join(os.getcwd(), "ttsdk.7z"), outdir=os.path.join(os.getcwd(), "ttsdk")
+        os.path.join(os.getcwd(), "ttsdk.7z"),
+        outdir=os.path.join(os.getcwd(), "ttsdk")
     )
 
+
 def move() -> None:
-    path = os.path.join(os.getcwd(), "ttsdk", os.listdir(os.path.join(os.getcwd(), "ttsdk"))[0])
+    path = os.path.join(
+        os.getcwd(), "ttsdk",
+        os.listdir(os.path.join(os.getcwd(), "ttsdk"))[0]
+    )
     libraries = ["TeamTalk_DLL", "TeamTalkPy"]
-    dest_dir = os.path.join(os.getcwd(), os.pardir) if os.path.basename(os.getcwd()) == "tools" else os.getcwd()
+    dest_dir = (
+        os.path.join(os.getcwd(), os.pardir)
+        if os.path.basename(os.getcwd()) == "tools"
+        else os.getcwd()
+    )
     for library in libraries:
         try:
             os.rename(
-                os.path.join(path, "Library", library), os.path.join(dest_dir, library)
+                os.path.join(path, "Library", library),
+                os.path.join(dest_dir, library)
             )
         except OSError:
             shutil.rmtree(os.path.join(dest_dir, library))
             os.rename(
-                os.path.join(path, "Library", library), os.path.join(dest_dir, library)
+                os.path.join(path, "Library", library),
+                os.path.join(dest_dir, library)
             )
     try:
         os.rename(
-            os.path.join(path, "License.txt"), os.path.join(dest_dir, "TTSDK_license.txt")
+            os.path.join(path, "License.txt"),
+            os.path.join(dest_dir, "TTSDK_license.txt")
         )
     except FileExistsError:
         os.remove(os.path.join(dest_dir, "TTSDK_license.txt"))
         os.rename(
-            os.path.join(path, "License.txt"), os.path.join(dest_dir, "TTSDK_license.txt")
+            os.path.join(path, "License.txt"),
+            os.path.join(dest_dir, "TTSDK_license.txt")
         )
 
 
@@ -111,6 +152,7 @@ def install() -> None:
     clean()
     print("cleaned.")
     print("Installed, exiting.")
+
 
 if __name__ == "__main__":
     install()
