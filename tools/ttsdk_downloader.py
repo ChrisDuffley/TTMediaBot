@@ -54,13 +54,13 @@ def download() -> None:
     # Automatically detect the latest SDK version from the website
     versions = page.find_all("li")
 
-    # Extract all version links (vX.Y format)
-    version_pattern = re.compile(r'^v(\d+)\.(\d+)([a-z]?)/$')
+    # Extract all version links (vX.Y or vX.Y<suffix> format)
+    # Matches: v5.19/, v5.18a/, v6.0beta/, v5.19-rc1/, etc.
+    version_pattern = re.compile(r'^v(\d+)\.(\d+)([a-z0-9\-]*)/$')
     version_candidates = []
     for item in versions:
         if item.a and item.a.get("href"):
             href = item.a.get("href")
-            # Look for version patterns like "v5.19/", "v5.18a/", etc.
             match = version_pattern.match(href)
             if match:
                 # Store (major, minor, suffix, full_version) for sorting
@@ -68,8 +68,12 @@ def download() -> None:
                 minor = int(match.group(2))
                 suffix = match.group(3) or ''
                 full_version = href[0:-1]  # Remove trailing /
+                # For sorting: empty suffix (stable) should sort last
+                # Use a tuple where stable versions have ('', 1) and
+                # pre-release versions have (suffix, 0)
+                is_stable = 1 if suffix == '' else 0
                 version_candidates.append(
-                    (major, minor, suffix, full_version)
+                    (major, minor, is_stable, suffix, full_version)
                 )
 
     if not version_candidates:
@@ -78,10 +82,10 @@ def download() -> None:
             "Please check the URL or try again later."
         )
 
-    # Sort by major, minor, then suffix (alphabetically)
-    version_candidates.sort(key=lambda x: (x[0], x[1], x[2]))
+    # Sort by major, minor, stability (stable last), then suffix
+    version_candidates.sort(key=lambda x: (x[0], x[1], x[2], x[3]))
     # Get the latest version (last after sorting)
-    version = version_candidates[-1][3]
+    version = version_candidates[-1][4]
     print(f"Detected latest SDK version: {version}")
 
     download_url = (
