@@ -46,19 +46,13 @@ def get_latest_version(page: bs4.BeautifulSoup) -> str:
     version_pattern = re.compile(r"^\d+(?:\.\d+)*$")
     versions = {}
     for link in page.find_all("a", href=True):
-        href = link.get("href")
-        if not href:
-            continue
-        href = href.strip("/")
+        href = link.get("href").strip("/")
         candidate = href.split("/")[-1]
         if version_pattern.fullmatch(candidate):
-            try:
-                versions[candidate] = tuple(int(part) for part in candidate.split("."))
-            except ValueError:
-                continue
+            versions[candidate] = tuple(int(part) for part in candidate.split("."))
     if not versions:
         sys.exit("Unable to find TeamTalk SDK versions on the download page")
-    return max(versions, key=versions.get)
+    return max(versions, key=lambda version: versions[version])
 
 
 def download() -> None:
