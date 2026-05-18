@@ -6,6 +6,7 @@ import requests
 
 import os
 import platform
+import re
 import shutil
 import sys
 
@@ -41,13 +42,25 @@ def get_url_suffix_from_platform() -> str:
             sys.exit("Your architecture is not supported")
 
 
+def get_latest_version(page: bs4.BeautifulSoup) -> str:
+    version_pattern = re.compile(r"^\d+(?:\.\d+)+$")
+    versions = set()
+    for link in page.find_all("a", href=True):
+        href = link.get("href").strip("/")
+        candidate = href.split("/")[-1]
+        if version_pattern.fullmatch(candidate):
+            versions.add(candidate)
+    if not versions:
+        sys.exit("Unable to find TeamTalk SDK versions on the download page")
+    return max(versions, key=lambda version: tuple(int(part) for part in version.split(".")))
+
+
 def download() -> None:
     headers = {'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/58.0.3029.110 Safari/537.3'}
     r = requests.get(url, headers=headers)
+    r.raise_for_status()
     page = bs4.BeautifulSoup(r.text, features="html.parser")
-    # The last tested version series is v5.15x
-    versions = page.find_all("li")
-    version = [i for i in versions if "5.18" in i.text][-1].a.get("href")[0:-1]
+    version = get_latest_version(page)
     download_url = (
         url
         + "/"
