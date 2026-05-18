@@ -43,8 +43,8 @@ def get_url_suffix_from_platform() -> str:
 
 
 def get_latest_version(page: bs4.BeautifulSoup) -> str:
-    version_pattern = re.compile(r"^\d+(?:\.\d+)+$")
-    versions = set()
+    version_pattern = re.compile(r"^\d+(?:\.\d+)*$")
+    versions = {}
     for link in page.find_all("a", href=True):
         href = link.get("href")
         if not href:
@@ -52,17 +52,13 @@ def get_latest_version(page: bs4.BeautifulSoup) -> str:
         href = href.strip("/")
         candidate = href.split("/")[-1]
         if version_pattern.fullmatch(candidate):
-            versions.add(candidate)
+            try:
+                versions[candidate] = tuple(int(part) for part in candidate.split("."))
+            except ValueError:
+                continue
     if not versions:
         sys.exit("Unable to find TeamTalk SDK versions on the download page")
-
-    def version_key(version: str) -> tuple[int, ...]:
-        try:
-            return tuple(int(part) for part in version.split("."))
-        except ValueError:
-            return tuple()
-
-    return max(versions, key=version_key)
+    return max(versions, key=versions.get)
 
 
 def download() -> None:
