@@ -46,15 +46,13 @@ def get_latest_version(page: bs4.BeautifulSoup) -> str:
     version_pattern = re.compile(r"^v\d+(?:\.\d+)*[a-z]*$")
 
     def version_key(v: str) -> tuple:
-        # Strip leading 'v', split on '.', then parse each part as (int, alpha_suffix)
-        result = []
-        for part in v[1:].split("."):
-            m = re.match(r"^(\d+)([a-z]*)$", part)
-            if m:
-                result.append((int(m.group(1)), m.group(2)))
-            else:
-                result.append((0, part))
-        return tuple(result)
+        # Strip leading 'v', split on '.', parse each part as (int, alpha_suffix)
+        return tuple(
+            (int(m.group(1)), m.group(2))
+            for part in v[1:].split(".")
+            for m in [re.match(r"^(\d+)([a-z]*)$", part)]
+            if m
+        )
 
     versions = []
     for link in page.find_all("a", href=True):
