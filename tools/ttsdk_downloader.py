@@ -42,7 +42,7 @@ def get_url_suffix_from_platform() -> str:
 
 
 def get_latest_version(page: bs4.BeautifulSoup) -> str:
-    # Version links on the page are directories, e.g. "v5.18/", "v5.21.2/", "v5.22a/"
+    # Version directories are labelled e.g. "v5.18/", "v5.21.2/", "v5.22a/"
     version_pattern = re.compile(r"^v\d+(?:\.\d+)*[a-z]*$")
 
     def version_key(v: str) -> tuple:
@@ -54,14 +54,14 @@ def get_latest_version(page: bs4.BeautifulSoup) -> str:
             if m
         )
 
-    versions = []
+    # Check every path segment of every link so this works for both Apache
+    # directory listings ("v5.22a/") and download pages that link directly
+    # to files ("/teamtalksdk/v5.22a/tt5sdk_v5.22a_win64.7z").
+    versions = set()
     for link in page.find_all("a", href=True):
-        href = link.get("href", "").strip("/")
-        if not href:
-            continue
-        candidate = href.split("/")[-1]
-        if version_pattern.fullmatch(candidate):
-            versions.append(candidate)
+        for segment in link.get("href", "").split("/"):
+            if version_pattern.fullmatch(segment):
+                versions.add(segment)
     if not versions:
         sys.exit("Unable to find TeamTalk SDK versions on the download page")
     return max(versions, key=version_key)
@@ -70,7 +70,6 @@ def get_latest_version(page: bs4.BeautifulSoup) -> str:
 def download() -> None:
     headers = {"User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/58.0.3029.110 Safari/537.3"}
     r = requests.get(url, headers=headers)
-    r.raise_for_status()
     page = bs4.BeautifulSoup(r.text, features="html.parser")
     version = get_latest_version(page)
     download_url = (
