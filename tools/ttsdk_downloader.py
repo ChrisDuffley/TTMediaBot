@@ -46,7 +46,9 @@ def get_latest_version(page: bs4.BeautifulSoup) -> str:
     version_pattern = re.compile(r"^\d+(?:\.\d+)*$")
     versions = {}
     for link in page.find_all("a", href=True):
-        href = link.get("href").strip("/")
+        href = link.get("href", "").strip("/")
+        if not href:
+            continue
         candidate = href.split("/")[-1]
         if version_pattern.fullmatch(candidate):
             versions[candidate] = tuple(int(part) for part in candidate.split("."))
