@@ -58,7 +58,7 @@ def get_latest_version(page: bs4.BeautifulSoup) -> str:
 
 
 def download() -> None:
-    headers = {"User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/58.0.3029.110 Safari/537.3"}
+    headers = {"User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/136.0.0.0 Safari/537.36"}
     r = requests.get(url, headers=headers)
     r.raise_for_status()
     page = bs4.BeautifulSoup(r.text, features="html.parser")
